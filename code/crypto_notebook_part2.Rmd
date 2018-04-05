@@ -115,7 +115,7 @@ get_alt_data <- function(tz = "UTC"
 }
 ```
 
- `r opts_current$get("label")` can be used to download data for multiple coin at the same time. The function returns a data.table object with data for all coins in the function call. Even if the user doesn't add bitcoin to the list of coins, the function adds bitcoin by default. This can be deactivated with the add_bitcoin argument. Here is an example 
+The function above can be used to download data for multiple coin at the same time. The function returns a data.table object with data for all coins in the function call. Even if the user doesn't add bitcoin to the list of coins, the function adds bitcoin by default. This can be deactivated with the add_bitcoin argument. Here is an example 
 ```{r}
 # get alt data for some coins
 alt_data <- get_alt_data(return_in_USDT = T
@@ -157,11 +157,35 @@ alt_data[, pct_change := Delt(price_usdt), by = pair_usdt]
 ```
 
 ### Normalized Price in USD
-Since the prices vary a lot, both overtime for the same coin and between coins, we will add a variable of the normalized price in USD.
+Since the prices vary a lot, both overtime for the same coin and between coins, we will add a variable of the normalized price in USD. This variable will make it easy to plot prices of coins on the same figure. 
 
 ```{r}
 # add normalized prices in udst
 alt_data[, price_usdt_norm := price_usdt/max(price_usdt), by = pair_usdt]
+```
+
+Now that we have the normalized prices in USD, let's look at the prices of bitcoin and litcoin on the same figure. We'll do that for 2018 so we can better see any possible correlations. 
+
+```{r btc_ltc_2018, fig.width=10, fig.height=6, fig.cap="Prices of Bitcoin and LTC in 2018"}
+p <- ggplot(alt_data[year(Date) == 2018 & pair_usdt %like% "BTC|LTC"], aes(x = Date, y =  price_usdt_norm, col = pair_usdt)) + geom_line()
+p <- p + theme_minimal() + ylab("Price (USD)")
+ggplotly(p)
+```
+
+The trends in the prices of BTC and LTC are very similar, Let's look at price trends for 2017
+
+```{r btc_ltc_2017, fig.width=10, fig.height=6, fig.cap="Prices of Bitcoin and LTC in 2017"}
+p <- ggplot(alt_data[year(Date) == 2017 & pair_usdt %like% "BTC|LTC"], aes(x = Date, y =  price_usdt_norm, col = pair_usdt)) + geom_line()
+p <- p + theme_minimal() + ylab("Price (USD)")
+ggplotly(p)
+```
+
+Seems like we need to zoon in on the last quarter of 2017, let's do that
+
+```{r btc_ltc_2017_3rd_quarter, fig.width=10, fig.height=6, fig.cap="Prices of Bitcoin and LTC in the last quarter of 2017"}
+p <- ggplot(alt_data[Date >= "2017-10-01"  & Date < "2018-01-01" &  pair_usdt %like% "BTC|LTC"], aes(x = Date, y =  price_usdt_norm, col = pair_usdt)) + geom_line()
+p <- p + theme_minimal() + ylab("Price (USD)")
+ggplotly(p)
 ```
 
 Let's look at the percentage daily changes of the altcoins between 2015 and today.

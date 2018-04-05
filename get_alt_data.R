@@ -142,6 +142,18 @@ p <- p + annotate("text", x = as.POSIXct("2015-10-05"), y = 75, label = "@aousab
 p <- p + theme_bw() + guides(col=guide_legend(title="Coin Pair"))
 ggplotly(p)
 
+p <- ggplot(alt_data[year(Date) == 2018], aes(x = Date, y =  price_usdt, col = pair_usdt)) + geom_line()
+p <- p + facet_wrap(~pair_usdt, scales = "free", ncol = 3) + theme_minimal() + theme(legend.position="none") + ylab("Price (USD)")
+p
+
+p <- ggplot(alt_data[year(Date) == 2018 & pair_usdt %like% "BTC|LTC"], aes(x = Date, y =  price_usdt_norm, col = pair_usdt)) + geom_line()
+p <- p + theme_minimal() + theme(legend.position="none") + ylab("Price (USD)")
+p
+
+p <- ggplot(alt_data[Date >= "2017-10-01"  & Date < "2018-01-01" & pair_usdt %like% "BTC|LTC"], aes(x = Date, y =  price_usdt_norm, col = pair_usdt)) + geom_line()
+p <- p + theme_minimal() + theme(legend.position="none") + ylab("Price (USD)")
+p
+
 p <- ggplot(alt_data[pair_usdt %like% "BTC|LTC"], aes(x = Date, y =  (pct_change), col = pair_usdt)) + geom_line()
 ggplotly(p)
 
