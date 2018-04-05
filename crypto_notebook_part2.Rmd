@@ -1,0 +1,14 @@
+---
+title: "A Quick Look at Crypto Currencies with R - Part 2"
+output: html_notebook
+author: "Dr. Aous \"Alex\" Abdo @aousabdo"
+editor_options: 
+  chunk_output_type: inline
+---
+
+In my previous post I explored bitcoin data from different exchagnes, we also covered some arbitrage-related data. 
+In part 2 of this series I will explore alt coin realted data. 
+
+## Data
+The best source I know off to get alt-coin data is through Poleniex
+

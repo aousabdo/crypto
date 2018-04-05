@@ -1,0 +1,214 @@
+---
+title: "A Quick Look at Crypto Currencies with R - Part 2"
+output: html_notebook
+author: "Dr. Aous \"Alex\" Abdo @aousabdo"
+editor_options: 
+  chunk_output_type: inline
+---
+
+In my previous post I explored bitcoin data from different exchagnes, we also covered some arbitrage-related data. 
+In part 2 of this series I will explore alt coin realted data. 
+
+## Data
+The best source I know off to get alt-coin data is through [PoloniexR](https://cran.r-project.org/web/packages/PoloniexR/index.html). I have written an R function to help download data. 
+
+```{r poloniex_function}
+get_alt_data <- function(tz = "UTC"
+                         , coin = c("ETH", "LTC")
+                         , add_bitcoin = TRUE
+                         , return_in_USDT = TRUE
+                         , from = "2017-01-01"
+                         , to = "2018-04-09"
+                         , period = "D"
+                         , verbose = FALSE){
+  
+  # We will be using the public API
+  poloniex.public <- PoloniexPublicAPI()
+  
+  # set the time zone to utc
+  Sys.setenv(tz = tz)
+  
+  # convert from and to into time obj
+  from  <- as.POSIXct(paste(from, tz, sep = ""))
+  to    <- as.POSIXct(paste(to, tz, sep = ""))
+  
+  # lists to store data.tables and xts objects
+  chart_list <- list()
+  dt_list    <- list()
+  
+  # make sure the coin pair is in upper case
+  coin       <- toupper(coin)
+  coin_pairs <- paste0("BTC_", coin[coin != "BTC"])
+  if(add_bitcoin | return_in_USDT) coin_pairs <- c("USDT_BTC", coin_pairs)
+  
+  # loop over the coins to get the data
+  for(i in coin_pairs){
+    if(verbose)
+      invisible(cat('\tGetting data for ', i, ' pair\n'))
+    
+    # this is a list that will contain the chart data for each coin pair
+    try(chart_list[[i]] <- ReturnChartData(theObject = poloniex.public
+                                       , pair      = i
+                                       , from      = from
+                                       , to        = to
+                                       , period    = period)
+        , silent = TRUE)
+    
+    # list to contain data.tables 
+    try(dt_list[[i]] <- as.data.table(chart_list[[i]]), silent = TRUE)
+  }
+  
+  # convert to data.table and make sure to add a column containing the pairs
+  coin_dt <- rbindlist(l = dt_list, use.names = TRUE, idcol = "pair")
+  
+  # return data in usdt prices
+  if(return_in_USDT){
+    # to get the price of the alt coin in usdt is not that simple but we'll do it
+    # get a DT of the btc_usdt pair
+    btc_usd <- coin_dt[pair == "USDT_BTC"]
+    btc_usd <- btc_usd[, .(index, pair, weightedaverage)]
+    setnames(btc_usd, c("Date", "USDT_BTC_pair", "USDT_BTC_price"))
+    
+    # get DT with only alt coins
+    alt_coins <- copy(coin_dt)#[pair != "USDT_BTC"]
+    
+    # now we need to add an index to the alt_coins table, but first we have to rename the index column
+    alt_coins[, Date := index]
+    alt_coins[, index := 1:.N]
+    setkey(alt_coins, index)
+    
+    # now merge the data tables
+    coin_dt_usdt <- merge(x = alt_coins, y = btc_usd, by = "Date")
+    
+    # now calcualte the price in usdt
+    coin_dt_usdt[, price_usdt := ifelse(pair == "USDT_BTC", USDT_BTC_price, weightedaverage * USDT_BTC_price)]
+    
+    # now get rid of the extra columns
+    coin_dt_usdt[, c("USDT_BTC_price", "USDT_BTC_pair") := NULL]
+    
+    # we need to change some column names
+    col_names_to_change <- c("pair", "high", "low", "open", "close", "volume", "quotevolume", "weightedaverage")
+    col_names <- names(coin_dt_usdt)
+    col_names[col_names %in% col_names_to_change] <- paste0(col_names_to_change, '_btc')
+    
+    setnames(coin_dt_usdt, col_names)
+    
+    # add a column for the usdt pair
+    coin_dt_usdt[, pair_usdt := gsub("BTC_", "USDT_", pair_btc)]
+    
+    # adjust col order
+    setcolorder(coin_dt_usdt, c(1:10, 12, 11))
+    
+    # set key again
+    setkey(coin_dt_usdt, index)
+    
+    # now get rid of the index column since it is not needed anymore
+    coin_dt_usdt[, index := NULL]
+    
+    # now put together the return list  
+    return_list <- list(alt_chart_list = chart_list, alt_dt = coin_dt, alt_usdt_dt = coin_dt_usdt)
+  }else{
+    return_list <- list(alt_chart_list = chart_list, alt_dt = coin_dt)
+  }
+  
+  return(return_list)
+}
+```
+
+ `r opts_current$get("label")` can be used to download data for multiple coin at the same time. The function returns a data.table object with data for all coins in the function call. Even if the user doesn't add bitcoin to the list of coins, the function adds bitcoin by default. This can be deactivated with the add_bitcoin argument. Here is an example 
+```{r}
+# get alt data for some coins
+alt_data <- get_alt_data(return_in_USDT = T
+                         , from = "2015-01-01"
+                         , coin = c('ETH','XRP', 'BCH', 'LTC', 'NEO', 'XMR', 'DASH', 'XEM'))[['alt_usdt_dt']]
+```
+
+Let's look at the data we just downloaded
+```{r}
+head(alt_data)
+```
+The table shows the date, OHLC, Volume, and weightedaverage price in BTC. It also shows the pair and we added the price in USD.
+
+## Bitcoin-Altcoins Correlations
+Wheneven I look at the prices of the coins available on my [coinbase](https://www.coinbase.com/) app I always get struck by the similarity of the price trends between the four coins available on coinbase: BTC, ETH, BCH, and LTC, see Figure below. So I thought it will be a good idea to explore the correlation in price trends between altcoins and bitcoin. 
+
+![Apparent correlation between the prices of Bitcoin and other coins on coinbase.](../figures/coinbase_screenshot.jpg){width=500px}
+
+Let's look at price trends of the coins we just downloaded. To better see potential correlations I am going to only zoon in on 2018. 
+
+```{r coin_prices_2018, fig.width=10, fig.height=6, fig.cap="Prices of Bitcoin and other altcoins in 2018"}
+p <- ggplot(alt_data[year(Date) == 2018], aes(x = Date, y =  price_usdt, col = pair_usdt)) + geom_line()
+p <- p + facet_wrap(~pair_usdt, scales = "free", ncol = 3) + theme_minimal() + theme(legend.position="none") + ylab("Price (USD)")
+p
+```
+
+The figure above shows that some coins seems to be more correlated with Bitcoin than others. The figure also shows that this variablity between Bitcoin and another coin varies over time. More on this below.
+
+Tyring to find correlations bewteen time series data using Pearson correlation coefficient or other metrics used with stationary data, time series is not a form of stationary data, can give misleading results. Similar trends in time series data can also be very misleading, a nice article on this topic can be found [here](https://svds.com/avoiding-common-mistakes-with-time-series/). And always remember that **Correlation doesn't guarantee Causation**
+
+Bottom line is the following, one has to be careful when cross-correlating time serice. In order to perform proper correlation analysis we need to add some new variables to our table.
+
+### Percentage Daily Change
+Percentage daily change calculates the price change of a coin over a period of a day. Let's add that to the table. Notice that we are calcualting this variable using the USD price, and not the price in Bitcoin. 
+
+```{r}
+# add daily price change
+alt_data[, pct_change := Delt(price_usdt), by = pair_usdt]
+```
+
+### Normalized Price in USD
+Since the prices vary a lot, both overtime for the same coin and between coins, we will add a variable of the normalized price in USD.
+
+```{r}
+# add normalized prices in udst
+alt_data[, price_usdt_norm := price_usdt/max(price_usdt), by = pair_usdt]
+```
+
+Let's look at the percentage daily changes of the altcoins between 2015 and today.
+
+```{r percentage_daily_change, fig.width=10, fig.height=6, fig.cap="Percentage daily returns for some coins"}
+# plot the percent changes
+p <- ggplot(alt_data[Date > ymd("2015-01-01")], aes(x = Date, y =  (100*pct_change), col = pair_usdt)) + geom_line()
+p <- p + ggtitle("% Daily Returns over time") + ylab("Daily Return (%)") 
+p <- p + theme_bw() + guides(col=guide_legend(title="Coin Pair"))
+ggplotly(p)
+```
+
+Although the above figure is very cluttered, one thing is certain, percentage daily returns vary greatly for crypto. Let's try to make this figure a bit easier to read
+
+```{r percentage_daily_change_2, message=FALSE, fig.width=8, fig.height=6, fig.cap="Percentage daily returns for some coins"}
+p <- ggplot(alt_data[Date > ymd("2015-01-01")], aes(x = Date, y =  (100*pct_change), col = pair_usdt)) + geom_line() + facet_wrap(~ pair_usdt)
+p <- p + ggtitle("Percentage Daily Returns over time") + ylab("Daily Return (%)") 
+p <- p + theme_bw() + theme(legend.position="none") 
+ggplotly(p)
+```
+
+It is kind of surprising that Bitcoin has the least variability in daily returns. The nice big spike around April 2nd 2017 shows a percentage daily return of ~88% for XRP, this is the highest daily return I have seen! 
+
+Let's look at the percentage daily returns for Bitcoin and Litecoin since they seem to be highly correlated. I am going to zoom in on the time period 2016-02-01 and 2016-05-01.
+
+```{r daily_return_ltc_btc, fig.width=10, fig.height=6, fig.cap="Daily Return for Bitcoin and LTC in 2018"}
+start_date <- ymd("2016-02-01")
+end_date <- ymd("2016-05-01")
+p <- ggplot(alt_data[pair_usdt %like% "BTC|LTC" & Date > start_date & Date < end_date], aes(x = Date, y =  (100*pct_change), col = pair_usdt)) + geom_line() + theme_bw() + ylab("Price (USD)")
+p
+```
+
+There clearly is a correlation between daily returns of BTC and LTC.
+
+Now we'll subset the data to only keep variables we are interested in 
+
+```{r}
+# subset data
+alt_data_sub <- alt_data[, .(Date, pair_usdt, pct_change)]
+```
+
+We'll do some data processing
+
+```{r}
+# convert to wide format
+alt_data_sub <- spread(data = alt_data_sub, key = "pair_usdt", value = "pct_change")
+```
+
+
+
