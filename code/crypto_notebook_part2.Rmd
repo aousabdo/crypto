@@ -188,6 +188,59 @@ p <- p + theme_minimal() + ylab("Price (USD)")
 ggplotly(p)
 ```
 
+It is clear from the above figure that the correlation in the prices of bitcoin and LTC vary over time. Note how the highest price for bitcoin on December 17 2017, preceeded that of LTC by two days, which occured on December 19 2017. This wasn't the case for the ATH which occurred on January 6th 2018 for both coins.   
+
+Up until now I haven't calculated any correltaions between the price of different coins. You might ask why should we even care about correlations in time series. Well, in the case of financial time series data, if one can show that a correlation exists between two time series then one can use this correlation to model/predict the price movement of one coin/stock given the price trends of another coin/stock. However, as we mentioned earlier, correlation for time series data is not static, it changes over time. Actually let's show that. To do that I am going to be calculating the [Pearson correlation coefficient](https://en.wikipedia.org/wiki/Pearson_correlation_coefficient). In simple words, Pearson correlation coefficient for two vectors of data is a measure that shows how correlated these two vectors of data are. The value of this coefficient varies from -1, perfectly anti-correlated, to 1, perfectly correlated. So the correlation coefficient for a series of numbers on itself is 1. A value of zero means these is no correlation. Remember, this only works for static data. 
+
+In order to perform correlation on our data I am going to need to do some data transformation:
+
+```{r message=FALSE}
+# subset data, only keep the date, the pair, and the price
+alt_data_sub <- alt_data[, .(Date, pair_usdt, price_usdt)]
+
+# convert to wide format 
+alt_data_sub <- spread(data = alt_data_sub, key = "pair_usdt", value = "price_usdt")
+
+# clean column names
+setnames(alt_data_sub, gsub("USDT_", "", colnames(alt_data_sub)))
+```
+
+The new table we created contains the date along with the prices in USDT for each coin we have in our table. 
+
+```{r}
+tail(alt_data_sub)
+```
+
+Again, what I am doing here is not correct, I am just trying to show you why we shouldn't be doing static correlations on crypto data. 
+Now we'll calculate the Pearson correlation coefficient between the coins we have, then we are going to make a nice plot of these coefficients. 
+
+```{r}
+# calculate the correlation matrix
+M <- cor(alt_data_sub[, -1], use = "complete.obs") # notice how we are ignoring missing data with the last argument
+
+# plot the correlation matrix
+corrplot.mixed(corr = M, upper = "ellipse", lower = "number", order = "AOE", tl.col = "black")
+```
+The above figure shows how highly correlated the prices of crypto currencies can be. For example XRP and XEM have a correlation coefficient of 0.93. The highest correlation seems to be between BCH and DASH at 0.97 correlation coefficient. All of the correlation coefficient we see in the above figure are significant, the question is, are these correlations the same over time. To answer this question I will calculate the correlation coefficient between Bitcoin and DASH on a monthly basis and will show that this coefficient varies greatly over time. Let's do that
+
+```{r}
+# subset the data
+btc_dash <- alt_data_sub[, .(Date, BTC, DASH)]
+
+# add a year_month column
+btc_dash[, year_month := as.yearmon(Date)]
+
+# calculate the correlation coefficient on montly basis
+btc_dash_2 <- btc_dash[, cor(BTC, DASH), by = year_month]
+
+# now plot the correlation coefficient as a function of month and year
+plot(btc_dash_2$year_month, btc_dash_2$V1, xlab = "Year-Month", main = "Correlation Coeff. Between BTC and DASH Over time"
+     , ylab = "Correlation Coefficient", type = "b", pch = 19, col = "blue")
+```
+
+
+
+### Daily Returns Correlations
 Let's look at the percentage daily changes of the altcoins between 2015 and today.
 
 ```{r percentage_daily_change, fig.width=10, fig.height=6, fig.cap="Percentage daily returns for some coins"}
@@ -220,19 +273,7 @@ p
 
 There clearly is a correlation between daily returns of BTC and LTC.
 
-Now we'll subset the data to only keep variables we are interested in 
-
-```{r}
-# subset data
-alt_data_sub <- alt_data[, .(Date, pair_usdt, pct_change)]
-```
-
-We'll do some data processing
-
-```{r}
-# convert to wide format
-alt_data_sub <- spread(data = alt_data_sub, key = "pair_usdt", value = "pct_change")
-```
-
+## Rolling Correlations
+ 
 
 

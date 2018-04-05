@@ -126,10 +126,10 @@ alt_data[, pct_change := Delt(price_usdt), by = pair_usdt]
 alt_data[, price_usdt_norm := price_usdt/max(price_usdt), by = pair_usdt]
 
 alt_data_sub <- alt_data[, .(Date, pair_usdt, pct_change)]
-# alt_data_sub <- alt_data[, .(Date, pair_usdt, price_usdt)]
+alt_data_sub <- alt_data[, .(Date, pair_usdt, price_usdt)]
 
 alt_data_sub <- spread(data = alt_data_sub, key = "pair_usdt", value = "pct_change")
-# alt_data_sub <- spread(data = alt_data_sub, key = "pair_usdt", value = "price_usdt")
+alt_data_sub <- spread(data = alt_data_sub, key = "pair_usdt", value = "price_usdt")
 
 alt_data_sub_2017 <- alt_data_sub[year(Date) == "2017"]
 
@@ -196,3 +196,16 @@ chart.RollingCorrelation(roll_coll_df[, c(1, 3:8), drop = FALSE]
                          , legend.loc = "bottomright"
                          , width = 12
                          , main = "Rolling Correlation for Altcoins Against Bitcoin. analyticadss.com")
+
+
+
+alt_data_sub_sep_2017 <- alt_data_sub[Date > "2017-08-31" & Date < "2017-10-01"]
+alt_data_sub_dec_2017 <- alt_data_sub[Date > "2017-11-30" & Date < "2018-01-01"]
+alt_data_sub_jan_2018 <- alt_data_sub[Date > "2017-12-31" & Date < "2018-02-01"]
+alt_data_sub_mar_2018 <- alt_data_sub[Date > "2018-02-28" & Date < "2018-04-01"]
+
+M  <- cor(alt_data_sub_sep_2017[, -1], use = "complete.obs")
+p1 <- corrplot(corr = M, method = "ellipse", order = "AOE")
+
+
+alt_data_sub
