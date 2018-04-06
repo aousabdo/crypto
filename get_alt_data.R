@@ -208,4 +208,4 @@ M  <- cor(alt_data_sub_sep_2017[, -1], use = "complete.obs")
 p1 <- corrplot(corr = M, method = "ellipse", order = "AOE")
 
 
-alt_data_sub
+btc_dash <- alt_data_sub[, .(Date, BTC, DASH)]

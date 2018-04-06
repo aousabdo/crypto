@@ -9,6 +9,30 @@ editor_options:
 In my previous post I explored bitcoin data from different exchagnes, we also covered some arbitrage-related data. 
 In part 2 of this series I will explore alt coin realted data. 
 
+## R Libraries
+Below is a list of R libraries we will be using to help us with our analysis. Not all of them are necessary but they all will make our life easier. 
+
+```{r message=FALSE}
+library(PoloniexR)
+library(data.table)
+library(lubridate)
+library(Quandl)
+library(plyr)
+library(stringr)
+library(ggplot2)
+library(plotly)
+library(janitor)
+library(quantmod)
+library(pryr)
+library(corrplot)
+library(PerformanceAnalytics)
+library(tidyr)
+library(MLmetrics)
+library(tidyquant)
+library(corrr)
+library(cowplot)
+```
+
 ## Data
 The best source I know off to get alt-coin data is through [PoloniexR](https://cran.r-project.org/web/packages/PoloniexR/index.html). I have written an R function to help download data. 
 
@@ -190,6 +214,8 @@ ggplotly(p)
 
 It is clear from the above figure that the correlation in the prices of bitcoin and LTC vary over time. Note how the highest price for bitcoin on December 17 2017, preceeded that of LTC by two days, which occured on December 19 2017. This wasn't the case for the ATH which occurred on January 6th 2018 for both coins.   
 
+## Static Correlations (and why you shouldn't use them with crypto!)
+
 Up until now I haven't calculated any correltaions between the price of different coins. You might ask why should we even care about correlations in time series. Well, in the case of financial time series data, if one can show that a correlation exists between two time series then one can use this correlation to model/predict the price movement of one coin/stock given the price trends of another coin/stock. However, as we mentioned earlier, correlation for time series data is not static, it changes over time. Actually let's show that. To do that I am going to be calculating the [Pearson correlation coefficient](https://en.wikipedia.org/wiki/Pearson_correlation_coefficient). In simple words, Pearson correlation coefficient for two vectors of data is a measure that shows how correlated these two vectors of data are. The value of this coefficient varies from -1, perfectly anti-correlated, to 1, perfectly correlated. So the correlation coefficient for a series of numbers on itself is 1. A value of zero means these is no correlation. Remember, this only works for static data. 
 
 In order to perform correlation on our data I am going to need to do some data transformation:
@@ -235,10 +261,11 @@ btc_dash_2 <- btc_dash[, cor(BTC, DASH), by = year_month]
 
 # now plot the correlation coefficient as a function of month and year
 plot(btc_dash_2$year_month, btc_dash_2$V1, xlab = "Year-Month", main = "Correlation Coeff. Between BTC and DASH Over time"
-     , ylab = "Correlation Coefficient", type = "b", pch = 19, col = "blue")
+     , ylab = "Correlation Coefficient", type = "b", pch = 19, col = ifelse(btc_dash_2$V1 > 0, "blue", "red")
+     , ylim = c(-1, 1))
 ```
 
-
+This is interesting, the value of the monthly correlation coefficient between bitcoin and DASH varies between **<span style="color:red">`r round(range(btc_dash_2$V1)[1], 2)`</span>**, highly anti-correlated, to **<span style="color:blue">`r round(range(btc_dash_2$V1)[2], 2)`</span>**, highly correlated. And this is why **_you should never use static correlation metrics with crypto data!_** 
 
 ### Daily Returns Correlations
 Let's look at the percentage daily changes of the altcoins between 2015 and today.
@@ -271,7 +298,7 @@ p <- ggplot(alt_data[pair_usdt %like% "BTC|LTC" & Date > start_date & Date < end
 p
 ```
 
-There clearly is a correlation between daily returns of BTC and LTC.
+The figure shows clear correlation between the daily returns of Bitcoin and litcoin. It also shows that these correlations can vary greatly. 
 
 ## Rolling Correlations
  

@@ -11,7 +11,7 @@ No doubt that crypto currencies with all the promises they bring, both financial
 ## R Libraries
 Below is a list of R libraries we will be using to help us with our analysis. Not all of them are necessary but they all will make our life easier. 
 
-```{r}
+```{r message=FALSE}
 library(PoloniexR)
 library(data.table)
 library(lubridate)
@@ -27,6 +27,9 @@ library(corrplot)
 library(PerformanceAnalytics)
 library(tidyr)
 library(MLmetrics)
+library(tidyquant)
+library(corrr)
+library(cowplot)
 ```
 
 ## Getting the Data
