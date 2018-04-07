@@ -240,7 +240,7 @@ tail(alt_data_sub)
 Again, what I am doing here is not correct, I am just trying to show you why we shouldn't be doing static correlations on crypto data. 
 Now we'll calculate the Pearson correlation coefficient between the coins we have, then we are going to make a nice plot of these coefficients. 
 
-```{r}
+```{r fig.width=8}
 # calculate the correlation matrix
 M <- cor(alt_data_sub[, -1], use = "complete.obs") # notice how we are ignoring missing data with the last argument
 
@@ -249,7 +249,7 @@ corrplot.mixed(corr = M, upper = "ellipse", lower = "number", order = "AOE", tl.
 ```
 The above figure shows how highly correlated the prices of crypto currencies can be. For example XRP and XEM have a correlation coefficient of 0.93. The highest correlation seems to be between BCH and DASH at 0.97 correlation coefficient. All of the correlation coefficient we see in the above figure are significant, the question is, are these correlations the same over time. To answer this question I will calculate the correlation coefficient between Bitcoin and DASH on a monthly basis and will show that this coefficient varies greatly over time. Let's do that
 
-```{r}
+```{r fig.width=8}
 # subset the data
 btc_dash <- alt_data_sub[, .(Date, BTC, DASH)]
 
@@ -266,6 +266,70 @@ plot(btc_dash_2$year_month, btc_dash_2$V1, xlab = "Year-Month", main = "Correlat
 ```
 
 This is interesting, the value of the monthly correlation coefficient between bitcoin and DASH varies between **<span style="color:red">`r round(range(btc_dash_2$V1)[1], 2)`</span>**, highly anti-correlated, to **<span style="color:blue">`r round(range(btc_dash_2$V1)[2], 2)`</span>**, highly correlated. And this is why **_you should never use static correlation metrics with crypto data!_** 
+
+
+### Correlation Networks
+There is one more plot I would like to make, which is a network plot of the correlations between the different coins. The correlation network plot helps show strengths of correlation between the different coins. Agian, these correlations are time dependent and the figure we will be making will change over time, but I still think it is a good figure to make. Here it is:
+
+```{r fig.width=8}
+# we will be using the great corrr package for this work
+# get the correlation matrix, just like we did before
+# buile the correlation matrix 
+# the code snippets below are taken from 
+# http://www.business-science.io/timeseries-analysis/2017/07/30/tidy-timeseries-analysis-pt-3.html
+corr_2 <- correlate(alt_data_sub[, -1])
+
+# make the network plot
+# Network plot
+corr_net <- corr_2 %>%
+  network_plot(colours = c(palette_light()[[2]], "white", palette_light()[[4]]), legend = TRUE) +
+  labs(
+    title = "Static Correlations of some Crypto Currencies",
+    subtitle = "2014 through 2018"
+  ) +
+  theme_tq() +
+  theme(legend.position = "bottom")
+corr_net
+```
+
+It seems like XMR, LTC, and BTC are in the heart of this network, while BCH seems to be the least correlated with the rest of the coins. 
+Let's see how the network plot changes between 2017 and 2018:
+
+```{r corr_net_2017-2018, message=FALSE, fig.width=12}
+# subset the data and get correlation matrices
+corr_2017 <- correlate(alt_data_sub[year(Date) == 2017][, -1])
+corr_2018 <- correlate(alt_data_sub[year(Date) == 2018][, -1])
+
+# build Network plots
+corr_net_2017 <- corr_2017 %>%
+  network_plot(colours = c(palette_light()[[2]], "white", palette_light()[[4]]), legend = TRUE) +
+  labs(
+    title = "Static Correlations of some Crypto Currencies",
+    subtitle = "2017"
+  ) +
+  theme_tq() +
+  theme(legend.position = "bottom")
+
+corr_net_2018 <- corr_2018 %>%
+  network_plot(colours = c(palette_light()[[2]], "white", palette_light()[[4]]), legend = TRUE) +
+  labs(
+    title = "Static Correlations of some Crypto Currencies",
+    subtitle = "2018"
+  ) +
+  theme_tq() +
+  theme(legend.position = "bottom")
+
+# combine network plots
+cow_net_plots <-plot_grid(corr_net_2017, corr_net_2018, ncol = 2)
+
+title <- ggdraw() + 
+    draw_label(label = 'Crypto Correlation Networks',
+               fontface = 'bold', size = 18)
+cow_out <- plot_grid(title, cow_net_plots, ncol=1, rel_heights=c(0.1, 1))
+cow_out
+```
+
+As can be seen, the correlation networks do change overtime. 
 
 ### Daily Returns Correlations
 Let's look at the percentage daily changes of the altcoins between 2015 and today.
