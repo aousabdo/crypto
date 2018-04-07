@@ -13,6 +13,9 @@ library(corrplot)
 library(PerformanceAnalytics)
 library(tidyr)
 library(MLmetrics)
+library(tidyquant)
+library(corrr)
+library(cowplot)
 
 get_alt_data <- function(tz = "UTC"
                          , coin = c("ETH", "LTC")
@@ -199,13 +202,25 @@ chart.RollingCorrelation(roll_coll_df[, c(1, 3:8), drop = FALSE]
 
 
 
-alt_data_sub_sep_2017 <- alt_data_sub[Date > "2017-08-31" & Date < "2017-10-01"]
-alt_data_sub_dec_2017 <- alt_data_sub[Date > "2017-11-30" & Date < "2018-01-01"]
-alt_data_sub_jan_2018 <- alt_data_sub[Date > "2017-12-31" & Date < "2018-02-01"]
-alt_data_sub_mar_2018 <- alt_data_sub[Date > "2018-02-28" & Date < "2018-04-01"]
+corr_2017 <- correlate(alt_data_sub[year(Date) == 2017][, -1])
+corr_2018 <- correlate(alt_data_sub[year(Date) == 2018][, -1])
 
-M  <- cor(alt_data_sub_sep_2017[, -1], use = "complete.obs")
-p1 <- corrplot(corr = M, method = "ellipse", order = "AOE")
+# Network plot
+corr_net_2017 <- corr_2017 %>%
+  network_plot(colours = c(palette_light()[[2]], "white", palette_light()[[4]]), legend = TRUE) +
+  labs(
+    title = "Static Correlations of some Crypto Currencies",
+    subtitle = "2014 through 2018"
+  ) +
+  theme_tq() +
+  theme(legend.position = "bottom")
 
+corr_net_2018 <- corr_2018 %>%
+  network_plot(colours = c(palette_light()[[2]], "white", palette_light()[[4]]), legend = TRUE) +
+  labs(
+    title = "Static Correlations of some Crypto Currencies",
+    subtitle = "2014 through 2018"
+  ) +
+  theme_tq() +
+  theme(legend.position = "bottom")
 
-btc_dash <- alt_data_sub[, .(Date, BTC, DASH)]
