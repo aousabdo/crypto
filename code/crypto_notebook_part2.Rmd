@@ -247,7 +247,9 @@ M <- cor(alt_data_sub[, -1], use = "complete.obs") # notice how we are ignoring 
 # plot the correlation matrix
 corrplot.mixed(corr = M, upper = "ellipse", lower = "number", order = "AOE", tl.col = "black")
 ```
-The above figure shows how highly correlated the prices of crypto currencies can be. For example XRP and XEM have a correlation coefficient of 0.93. The highest correlation seems to be between BCH and DASH at 0.97 correlation coefficient. All of the correlation coefficient we see in the above figure are significant, the question is, are these correlations the same over time. To answer this question I will calculate the correlation coefficient between Bitcoin and DASH on a monthly basis and will show that this coefficient varies greatly over time. Let's do that
+The figure above shows the correlation coefficients between the different coins. It is easy to read, visually, the darker the color of the ellipse, and the more diagonal the ellipse, the higher the correlation coefficient. Of course you can also just look at the numbers on the bottom left part of the figure to get the value of the coefficient between two coins :). The figure shows how highly correlated the prices of crypto currencies can be. For example XRP and XEM have a correlation coefficient of 0.93. The highest correlation seems to be between BCH and DASH at 0.97 correlation coefficient. 
+
+All of the correlation coefficient we see in the above figure are significant, the question is, do these correlations vary over time. To answer this question I will calculate the correlation coefficient between Bitcoin and DASH on a monthly basis, you can do that for any time period, and will show that this coefficient varies greatly over time. Let's do that
 
 ```{r fig.width=8}
 # subset the data
@@ -275,7 +277,7 @@ There is one more plot I would like to make, which is a network plot of the corr
 # we will be using the great corrr package for this work
 # get the correlation matrix, just like we did before
 # buile the correlation matrix 
-# the code snippets below are taken from 
+# the code snippets below are taken from, that is a great blog BTW 
 # http://www.business-science.io/timeseries-analysis/2017/07/30/tidy-timeseries-analysis-pt-3.html
 corr_2 <- correlate(alt_data_sub[, -1])
 
@@ -292,7 +294,9 @@ corr_net <- corr_2 %>%
 corr_net
 ```
 
-It seems like XMR, LTC, and BTC are in the heart of this network, while BCH seems to be the least correlated with the rest of the coins. 
+The figure above shows a network which measures how strongly correlated the prices of the coins under stugy are. The darker the color of the edge, line, connecting two coins and the closer they are in the network the stronger the correlation between these two coins. 
+
+From the figure, it seems like XMR, LTC, and BTC are in the heart of this network, while BCH seems to be the least correlated with the rest of the coins. 
 Let's see how the network plot changes between 2017 and 2018:
 
 ```{r corr_net_2017-2018, message=FALSE, fig.width=12}
@@ -329,7 +333,7 @@ cow_out <- plot_grid(title, cow_net_plots, ncol=1, rel_heights=c(0.1, 1))
 cow_out
 ```
 
-As can be seen, the correlation networks do change overtime. 
+As can be seen, the correlation networks do change overtime. This is not news since we already saw in the previous section that the value of the correlation varies overtime (I know we showed this to be true for the BTC-DASH air but we'll show that this is true for the rest of the coins in the next section.)
 
 ### Daily Returns Correlations
 Let's look at the percentage daily changes of the altcoins between 2015 and today.
