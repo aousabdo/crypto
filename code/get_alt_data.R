@@ -191,3 +191,5 @@ chart.RollingCorrelation(roll_coll_df[, c(1, 3:8), drop = FALSE]
                          , legend.loc = "bottomright"
                          , width = 12
                          , main = "Rolling Correlation for Altcoins Against Bitcoin. analyticadss.com")
+
+alt_data_sub2 <- alt_data[, .(Date, pair_usdt, price_usdt)]

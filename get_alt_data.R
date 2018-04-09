@@ -224,3 +224,45 @@ corr_net_2018 <- corr_2018 %>%
   theme_tq() +
   theme(legend.position = "bottom")
 
+
+
+
+
+# subset data, only keep the date, the pair, and the price
+alt_data_sub_pct <- alt_data[, .(Date, pair_usdt, pct_change)]
+
+# convert to wide format 
+alt_data_sub_pct <- spread(data = alt_data_sub_pct, key = "pair_usdt", value = "pct_change")
+
+# clean column names
+setnames(alt_data_sub_pct, gsub("USDT_", "", colnames(alt_data_sub)))
+
+# subset the data
+btc_ltc <- alt_data_sub_pct[, .(Date, BTC, LTC)]
+
+# add a year_month column
+btc_ltc[, year_month := as.yearmon(Date)]
+
+# calculate the correlation coefficient on montly basis
+btc_ltc_2 <- btc_ltc[, cor(BTC, LTC), by = year_month]
+
+# now plot the correlation coefficient as a function of month and year
+plot(btc_ltc_2$year_month, btc_ltc_2$V1, xlab = "Year-Month", main = "Correlation Coeff. Between BTC and LTC Over time"
+     , ylab = "Correlation Coefficient", type = "b", pch = 19, col = ifelse(btc_ltc_2$V1 > 0, "blue", "red")
+     , ylim = c(-1, 1))
+
+
+
+# subset the data
+btc_ltc_price <- alt_data_sub[, .(Date, BTC, LTC)]
+
+# add a year_month column
+btc_ltc_price[, year_month := as.yearmon(Date)]
+
+# calculate the correlation coefficient on montly basis
+btc_ltc_price_2 <- btc_ltc_price[, cor(BTC, DASH), by = year_month]
+
+# now plot the correlation coefficient as a function of month and year
+plot(btc_ltc_price_2$year_month, btc_ltc_price_2$V1, xlab = "Year-Month", main = "Correlation Coeff. Between BTC and Litecoin Over time"
+     , ylab = "Correlation Coefficient", type = "b", pch = 19, col = ifelse(btc_ltc_price_2$V1 > 0, "blue", "red")
+     , ylim = c(-1, 1))
