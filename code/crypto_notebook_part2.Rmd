@@ -390,13 +390,13 @@ btc_ltc[, year_month := as.yearmon(Date)]
 btc_ltc_2 <- btc_ltc[, cor(BTC, LTC), by = year_month]
 
 # now plot the correlation coefficient as a function of month and year
-plot(btc_ltc_2$year_month, btc_ltc_2$V1, xlab = "Year-Month", main = "Correlation Coeff. Between BTC and LTC Over time"
+plot(btc_ltc_2$year_month, btc_ltc_2$V1, xlab = "Year-Month", main = "Correlation Coeff. Between Daily Returns of BTC and LTC Over time"
      , ylab = "Correlation Coefficient", type = "b", pch = 19, col = ifelse(btc_ltc_2$V1 > 0, "blue", "red")
      , ylim = c(-1, 1))
 
 ```
 
-Interesting, the correlation between the percentage daily change of the prices for bitcoin and litecoin is much more on the positive side, we only have on month in which this correlation is negtive, barely negative. This is a lot different than what we saw between Bitcoin and DASH, but that was for the actual prices and not the daily returns. Let's redo this plot but his time for the actual prices for bitcoin and litecoin, just like we did with DASH.  
+Interesting, the correlation between the percentage daily change of the prices for bitcoin and litecoin is much more on the positive side, we only have one month in which this correlation is negtive, barely negative. This is a lot different than what we saw between Bitcoin and DASH, but that was for the actual prices and not the daily returns. Let's redo this plot but his time for the actual prices for bitcoin and litecoin, just like we did with DASH.  
 
 
 ```{r}
@@ -415,7 +415,14 @@ plot(btc_ltc_price_2$year_month, btc_ltc_price_2$V1, xlab = "Year-Month", main =
      , ylim = c(-1, 1))
 ```
 
+Trends in the correlations of the daily return of bitcoin and litecoin on mothly basis, boy this is a mouth full, are very similar to those for the prices as we saw in the previous figure. 
+
+Now we'll do something more statistically sound, rolling correlations. 
+
 ## Rolling Correlations
  
+Establishing a relationship, in this a correlation, between two time series can be very benificial for several reasons, the most important of which is to be able to use this relationship/correlation to predict market movement, which if you can get right then you'll be rich. Established correlations between the price of a crypto currency or a stock, for example, with other time series data such as market sentiment, news etc. can be used to better forecast the movement of that stock or coin. But as we have seen above, one problem exists, these correlations are not static and they could vary greatly overtime as we have seen in the examples above. 
+
+
 
 
