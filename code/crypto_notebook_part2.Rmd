@@ -272,6 +272,7 @@ plot(btc_dash_2$year_month, btc_dash_2$V1, xlab = "Year-Month", main = "Correlat
 
 This is interesting, the value of the monthly correlation coefficient between bitcoin and DASH varies between **<span style="color:red">`r round(range(btc_dash_2$V1)[1], 2)`</span>**, highly anti-correlated, to **<span style="color:blue">`r round(range(btc_dash_2$V1)[2], 2)`</span>**, highly correlated. And this is why **_you should never use static correlation metrics with crypto data!_** 
 
+A good blog post on this same topic is written by [Tom Fawcett](https://twitter.com/tomeff) from [Silicon Valley Data Science](https://www.svds.com) and can be found [here](https://www.svds.com/avoiding-common-mistakes-with-time-series/). In his post Tom shows, with simple simulations, why static correlations should never be used with time series. 
 
 ### Correlation Networks
 There is one more plot I would like to make, which is a network plot of the correlations between the different coins. The correlation network plot helps show strengths of correlation between the different coins. Agian, these correlations are time dependent and the figure we will be making will change over time, but I still think it is a good figure to make. Here it is:
@@ -279,7 +280,7 @@ There is one more plot I would like to make, which is a network plot of the corr
 ```{r fig.width=8}
 # we will be using the great corrr package for this work
 # get the correlation matrix, just like we did before
-# buile the correlation matrix 
+# build the correlation matrix 
 # the code snippets below are taken from, that is a great blog BTW 
 # http://www.business-science.io/timeseries-analysis/2017/07/30/tidy-timeseries-analysis-pt-3.html
 corr_2 <- correlate(alt_data_sub[, -1])
