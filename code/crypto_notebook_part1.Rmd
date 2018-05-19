@@ -1,5 +1,5 @@
 ---
-title: "A Quick Look at Crypto Currencies with R - Part 1"
+title: "A Quick Look at Crypto Currencies with R - Part 1 Downloading and Processing Crypto Data with R"
 output: html_notebook
 author: "Dr. Aous Abdo @aousabdo"
 editor_options: 
