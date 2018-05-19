@@ -1,8 +1,10 @@
 ---
 title: "A Quick Look at Crypto Currencies with R - Part 1"
-output: html_notebook
 author: "Dr. Aous \"Alex\" Abdo @aousabdo"
-editor_options: 
+output:
+  html_document:
+    df_print: paged
+editor_options:
   chunk_output_type: inline
 ---
 
