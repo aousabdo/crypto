@@ -1,5 +1,5 @@
 ---
-title: "A Quick Look at Crypto Currencies with R - Part 2"
+title: "A Quick Look at Crypto Currencies with R - Part 2 Corrleations in the Crypto World"
 author: "Dr. Aous Abdo @aousabdo"
 output:
   html_notebook: default
@@ -420,12 +420,6 @@ plot(btc_ltc_price_2$year_month, btc_ltc_price_2$V1, xlab = "Year-Month", main =
 
 Trends in the correlations of the daily return of bitcoin and litecoin on mothly basis, boy this is a mouth full, are very similar to those for the prices as we saw in the previous figure. 
 
-Now we'll do something more statistically sound, rolling correlations. 
-
-## Rolling Correlations
- 
-Establishing a relationship, in this a correlation, between two time series can be very benificial for several reasons, the most important of which is to be able to use this relationship/correlation to predict market movement, which if you can get right then you'll be rich. Established correlations between the price of a crypto currency or a stock, for example, with other time series data such as market sentiment, news etc. can be used to better forecast the movement of that stock or coin. But as we have seen above, one problem exists, these correlations are not static and they could vary greatly overtime as we have seen in the examples above. 
-
-
+In the next post we'll do something more statistically sound, rolling correlations.
 
 
