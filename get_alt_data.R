@@ -260,7 +260,7 @@ btc_ltc_price <- alt_data_sub[, .(Date, BTC, LTC)]
 btc_ltc_price[, year_month := as.yearmon(Date)]
 
 # calculate the correlation coefficient on montly basis
-btc_ltc_price_2 <- btc_ltc_price[, cor(BTC, DASH), by = year_month]
+btc_ltc_price_2 <- btc_ltc_price[, cor(BTC, LTC), by = year_month]
 
 # now plot the correlation coefficient as a function of month and year
 plot(btc_ltc_price_2$year_month, btc_ltc_price_2$V1, xlab = "Year-Month", main = "Correlation Coeff. Between BTC and Litecoin Over time"

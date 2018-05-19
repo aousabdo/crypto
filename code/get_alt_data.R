@@ -49,10 +49,10 @@ get_alt_data <- function(tz = "UTC"
     
     # this is a list that will contain the chart data for each coin pair
     try(chart_list[[i]] <- ReturnChartData(theObject = poloniex.public
-                                       , pair      = i
-                                       , from      = from
-                                       , to        = to
-                                       , period    = period)
+                                           , pair      = i
+                                           , from      = from
+                                           , to        = to
+                                           , period    = period)
         , silent = TRUE)
     
     # list to contain data.tables 
@@ -192,4 +192,16 @@ chart.RollingCorrelation(roll_coll_df[, c(1, 3:8), drop = FALSE]
                          , width = 12
                          , main = "Rolling Correlation for Altcoins Against Bitcoin. analyticadss.com")
 
-alt_data_sub2 <- alt_data[, .(Date, pair_usdt, price_usdt)]
+
+
+plot(btc_ltc_2$year_month, btc_ltc_2$V1, xlab = "Year-Month", main = "Correlation Coeff. Between Daily Returns of BTC and LTC Over time"
+     , ylab = "Correlation Coefficient", type = "b", pch = 19, col = ifelse(btc_ltc_2$V1 > 0, "blue", "red")
+     , ylim = c(-1, 1))
+
+
+
+foo <- get_alt_data(return_in_USDT = T
+                    , from = "2015-01-01"
+                    , coin = c('ETH')
+                    , period = "2H"
+                    , verbose = T)[['alt_usdt_dt']]
