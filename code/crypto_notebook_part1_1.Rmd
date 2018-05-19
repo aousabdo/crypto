@@ -29,6 +29,7 @@ library(corrplot)
 library(PerformanceAnalytics)
 library(tidyr)
 library(MLmetrics)
+library(readr)
 ```
 
 ## Getting the Data
@@ -42,7 +43,8 @@ First, let's take a look at different exchange data for Bitcoin using Quandl. We
 
 ```{r, message = FALSE}
 # enable your Quandl API key
-Quandl.api_key("EKA9xVCsp9bcEBeJLzZG")
+my_quandl_api_key <- read_file("../../quandl_api_key.txt")
+Quandl.api_key(my_quandl_api_key)
 
 # function to download quandl data
 get_quandl_data <- function(data_source = "BITFINEX"

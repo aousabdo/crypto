@@ -144,7 +144,8 @@ library(pryr)
 library(corrplot)
 library(PerformanceAnalytics)
 library(tidyr)
-library(MLmetrics)</code></pre>
+library(MLmetrics)
+library(readr)</code></pre>
 </div>
 <div id="getting-the-data" class="section level2">
 <h2>Getting the Data</h2>
@@ -157,7 +158,8 @@ library(MLmetrics)</code></pre>
 <p><a href="https://www.quandl.com">Quandl</a> is my go to place for any financial data. Their free-tier API has lots of good data one can use. Quandl offers data from multiple exchanges. Locating crypto data on Quandl is not straight forward. After spending few hours on their site I found out that most of the crypto data can be found <a href="https://www.quandl.com/data/BITFINEX-Bitfinex">here</a></p>
 <p>First, let’s take a look at different exchange data for Bitcoin using Quandl. We will download and plot historical bitcoin data from the following exchanges Kraken, Coinbase, Bitstamp, and ITBIT</p>
 <pre class="r"><code># enable your Quandl API key
-Quandl.api_key(&quot;EKA9xVCsp9bcEBeJLzZG&quot;)
+my_quandl_api_key &lt;- read_file(&quot;../../quandl_api_key.txt&quot;)
+Quandl.api_key(my_quandl_api_key)
 
 # function to download quandl data
 get_quandl_data &lt;- function(data_source = &quot;BITFINEX&quot;
