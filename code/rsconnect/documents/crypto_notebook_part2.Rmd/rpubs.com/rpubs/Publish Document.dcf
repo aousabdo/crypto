@@ -1,0 +1,10 @@
+name: Publish Document
+title:
+username:
+account: rpubs
+server: rpubs.com
+hostUrl: rpubs.com
+appId: https://api.rpubs.com/api/v1/document/390444/49dc9c815602493ca37470734e405909
+bundleId: https://api.rpubs.com/api/v1/document/390444/49dc9c815602493ca37470734e405909
+url: http://rpubs.com/aousabdo/390444
+when: 1526710375.57759

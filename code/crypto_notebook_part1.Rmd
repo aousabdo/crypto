@@ -1,8 +1,11 @@
 ---
-title: "A Quick Look at Crypto Currencies with R - Part 1 Downloading and Processing Crypto Data with R"
-output: html_notebook
+title: A Quick Look at Crypto Currencies with R - Part 1 Downloading and Processing
+  Crypto Data with R
 author: "Dr. Aous Abdo @aousabdo"
-editor_options: 
+output:
+  html_document:
+    df_print: paged
+editor_options:
   chunk_output_type: inline
 ---
 
@@ -28,6 +31,7 @@ library(PerformanceAnalytics)
 library(tidyr)
 library(MLmetrics)
 library(readr)
+library(knitr)
 ```
 
 ## Getting the Data
@@ -93,7 +97,7 @@ setkey(btc_usd, date)
 Let's take a look at the data table we just made. 
 
 ```{r}
-head(btc_usd)
+knitr::kable(head(btc_usd))
 ```
 
 The data includes 10 columns, the date, OCHL prices, volumes in USD and BTC, the weighted price, and the exchange. 
@@ -128,7 +132,7 @@ Now we have a new column which gives us the percentage of price differences for 
 Let's take a look at the new table. 
 
 ```{r}
-tail(btc_usd)
+knitr::kable(tail(btc_usd))
 ```
 
 The reason I looked at the newer dates is that prior to 2014 we only have data for one exchange, so all the price differences were 0. 
@@ -194,7 +198,7 @@ In the above chunk of code we created a new table which contains the maximum and
 Before we plot the table above, let's have a quick look at it.
 
 ```{r}
-head(tmp2)
+knitr::kable(head(tmp2))
 ```
 
 The max_min_exchange column contains all the data we need, so let's make a barplot of this variable, we'll color the barplot by the max_min criteria shown in max_min column

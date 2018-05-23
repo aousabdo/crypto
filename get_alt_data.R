@@ -266,3 +266,4 @@ btc_ltc_price_2 <- btc_ltc_price[, cor(BTC, LTC), by = year_month]
 plot(btc_ltc_price_2$year_month, btc_ltc_price_2$V1, xlab = "Year-Month", main = "Correlation Coeff. Between BTC and Litecoin Over time"
      , ylab = "Correlation Coefficient", type = "b", pch = 19, col = ifelse(btc_ltc_price_2$V1 > 0, "blue", "red")
      , ylim = c(-1, 1))
+

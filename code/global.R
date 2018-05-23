@@ -170,3 +170,29 @@ modify_var <- function(df = NULL
 #===========================================================================================#
 #=================================== End: modify_var =======================================#
 #===========================================================================================#
+
+#===========================================================================================#
+#======================= modified_medium_create_post_from_Rmd ==============================#
+#===========================================================================================#
+modified_medium_create_post_from_Rmd <-function (Rmd_file = NULL) 
+{
+  if (is.null(Rmd_file) && rstudioapi::isAvailable()) {
+    Rmd_file <- rstudioapi::getActiveDocumentContext()$path
+  }
+  if (tolower(tools::file_ext(Rmd_file)) != "rmd") {
+    stop(sprintf("%s is not .Rmd file!", basename(Rmd_file)))
+  }
+  file <- try(md_file <- rmarkdown::render(input = Rmd_file, output_format = rmarkdown::md_document(variant = "markdown_github"), 
+                                           encoding = "UTF-8"))
+  if (class(file) == "try-error") {
+    cat("Caught an error during rmarkdown::render, trying to read the md file.\n")
+    md_file <- gsub("Rmd", "md", Rmd_file)
+    if(!file.exists(md_file)) stop("md file not found. Quitting...")
+  }
+  front_matter <- rmarkdown::yaml_front_matter(Rmd_file, "UTF-8")
+  mediumaddin_upload(md_file = md_file, title = front_matter$title, 
+                     tags = front_matter$tags)
+}
+#===========================================================================================#
+#===================== End: modified_medium_create_post_from_Rmd ===========================#
+#===========================================================================================#
