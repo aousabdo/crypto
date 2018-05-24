@@ -26,6 +26,7 @@ library(corrr)
 library(cowplot)
 library(knitr)
 library(zoo)
+library(TTR)
 ```
 
 Rolling Correlations
@@ -53,16 +54,39 @@ sma4 <- rollmean(prod_c, k = 4)
 sma7 <- rollmean(prod_c, k = 7)
 
 # plot sales and overlay the moving averages
-plot(prod_c, pch=4, col = "black", xlab = "Index", ylab = "Sales")
-points(sma2, col = "red", pch=20)
-points(sma4, col = "blue", pch=20)
-points(sma7, col = "green", pch=20)
+plot(prod_c, pch = 4, col = "black", xlab = "Index", ylab = "Sales", cex = 1.5, ylim = c(800, 1800))
+points(sma2, col = "red", pch=5, cex = 1.5)
+points(sma4, col = "blue", pch=6, cex = 1.5)
+points(sma7, col = "green", pch=7, cex = 1.5)
 
 # add legend
-legend(1, 1700, legend=c("Sales", "SMA2", "SMA4", "SMA7"),
-       col=c("black", "red", "blue", "green"),  pch = c(4, rep(20, 3)), cex=0.8)
+legend(0.8, 1820, legend=c("Sales", "2-day moving avg.", "4-day moving avg.", "7-day moving avg."),
+       col=c("black", "red", "blue", "green"),  pch = c(seq(4, 7)), cex=0.8)
 ```
 
 ![](crypto_notebook_part3_files/figure-markdown_github/unnamed-chunk-2-1.png)
 
 Notice how increasing the time window helps us get rid of the noise in the data. This is evident from the smoother curves for the moving averages with time windows of 4 and 7. It is also worth noting that increasing the time window decreases the number number of retunred moving averages. This implies that a moving average over the whole period will result in just one number, which is simply the average over the whole period.
+
+The same can be done to any function that calculates a static value, like calculating correlations between two time series. Let's now calculate the rolling correlations over a period of 4 days for the sales of Products A and C.
+
+``` r
+# let's put the two sales of products A and C in a data.frame
+prod_a <- c(250, 241, 251, 286, 365, 412, 415, 362, 301, 280, 250, 234, 215, 198, 300)
+prod_c <- c(1030, 1195, 1228, 1178, 1504, 1697,1710 ,1491 ,1240 , 861, 853, 1158, 1265, 1566,1182)
+
+df <- data.frame(prod_a, prod_c)
+
+# now we'll calculate the rolling correlation
+rollcorr_a_c <- runCor(df[, 1], df[, 2], n = 4)
+
+# now let's make a plot
+plot(rollcorr_a_c, pch = 19, col = "blue", xlab = "Index", ylab = "Correlation", cex = 1.5, type = "b")
+abline(h = cor(df[, 1], df[2]), col = "red", lwd = 3)
+legend(0.8, -0.5, legend=c("Rolling Correlation", "Static Correlation"),
+       col=c("blue", "red"),  lty=c(1, 1),pch=c(19, NA), cex=0.8)
+```
+
+![](crypto_notebook_part3_files/figure-markdown_github/unnamed-chunk-3-1.png)
+
+As one can see from the above figure, for time series the correlation is not static and changes over time. In the figure the rolling correlation, shown in blue, varies greatly overtime, while the static correlation, just a pearson correlation coefficient, between the two time series is constant (shown in red.)
