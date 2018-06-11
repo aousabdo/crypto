@@ -90,7 +90,7 @@ rollcorr_a_c <- runCor(df[, 1], df[, 2], n = 4)
 # now let's make a plot
 plot(rollcorr_a_c, pch = 19, col = "blue", xlab = "Index", ylab = "Correlation", cex = 1.5, type = "b")
 abline(h = cor(df[, 1], df[2]), col = "red", lwd = 3)
-legend(0.8, -0.5, legend=c("Rolling Correlation", "Static Correlation"),
+legend(0.8, -0.5, legend=c("4-day Rolling Correlation", "Static Correlation"),
        col=c("blue", "red"),  lty=c(1, 1),pch=c(19, NA), cex=0.8)
 ```
 

@@ -2,9 +2,9 @@
 title: "A Quick Look at Crypto Currencies with R - Part 2 Corrleations in the Crypto World"
 author: "Dr. Aous Abdo @aousabdo"
 output:
-  html_notebook: default
   html_document:
     df_print: paged
+  html_notebook: default
 editor_options:
   chunk_output_type: inline
 ---
@@ -34,6 +34,7 @@ library(MLmetrics)
 library(tidyquant)
 library(corrr)
 library(cowplot)
+library(kableExtra)
 ```
 
 ## Data
@@ -152,7 +153,7 @@ alt_data <- get_alt_data(return_in_USDT = T
 
 Let's look at the data we just downloaded
 ```{r}
-head(alt_data)
+kable(head(alt_data), "latex", booktabs=T) %>% column_spec(1, bold = T) %>% kable_as_image()
 ```
 The table shows the date, OHLC, Volume, and weightedaverage price in BTC. It also shows the pair and we added the price in USD.
 
@@ -237,7 +238,7 @@ setnames(alt_data_sub, gsub("USDT_", "", colnames(alt_data_sub)))
 The new table we created contains the date along with the prices in USDT for each coin we have in our table. 
 
 ```{r}
-tail(alt_data_sub)
+kable(tail(alt_data_sub), "latex", booktabs=T) %>% column_spec(1, bold = T) %>% kable_as_image()
 ```
 
 Again, what I am doing here is not correct, I am just trying to show you why we shouldn't be doing static correlations on crypto data. 

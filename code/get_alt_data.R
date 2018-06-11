@@ -19,7 +19,7 @@ get_alt_data <- function(tz = "UTC"
                          , add_bitcoin = TRUE
                          , return_in_USDT = TRUE
                          , from = "2017-01-01"
-                         , to = "2018-04-09"
+                         , to = "2018-05-22"
                          , period = "D"
                          , verbose = FALSE){
   
@@ -117,6 +117,7 @@ get_alt_data <- function(tz = "UTC"
 
 alt_data <- get_alt_data(return_in_USDT = T
                          , from = "2015-01-01"
+                         , to = "2018-05-22"
                          , coin = c('ETH','XRP', 'BCH', 'LTC', 'NEO', 'XMR', 'DASH', 'XEM')
                          , verbose = T)[['alt_usdt_dt']]
 
