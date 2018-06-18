@@ -345,7 +345,7 @@ alt_data_roll_corr %>%
   # Data  geom_line(aes(y = static_corr), color = "red") +
   geom_point(alpha = 0.5, size = 0.5) +
   geom_smooth(method="gam", formula=y~s(x,k=100), col="dodgerblue4", se=FALSE, size=0.5) +
-  facet_wrap(~ Coin, ncol = 3, scales = "free_y") +
+  facet_wrap(~ Coin, ncol = 2, scales = "free_y") +
   # Aesthetics
   scale_color_tq() +
   labs(
@@ -357,4 +357,61 @@ alt_data_roll_corr %>%
   theme(legend.position="none")  
 ```
 
-The above figure shows some significagnt patters in the rolling correlations of the daily return for all alt coins in consideration. 
+The above figure shows some significagnt patters in the rolling correlations of the daily return for all alt coins in consideration. What is also interesting is the fact that these patters are very similar for all alt coins under study. 
+
+Next we are going to decompose these time series into their basic components 1) Seasonality 2) Trends and 3) Random components. Decomposing a time series is a common practice that helps reveal seasonal effects and trends. A very good introduction about time series decomposition for the non-technical can be found [here](https://anomaly.io/seasonal-trend-decomposition-in-r/).
+
+We will start by trying to detect the seasonality in the time series as follows
+
+```{r eth_decompose, message=FALSE, warning=FALSE, results="hide", echo=TRUE, fig.show='hide'}
+# code snippits taken from this great blog: 
+# https://anomaly.io/detect-seasonality-using-fourier-transform-r/
+
+require(TSA)
+
+# function to get the most significant frequencies and their corresponding time
+top_freq <- function(x = NULL, n = 3){
+  require(TSA)
+  
+  # get the periodogram, this calculates the FFT
+  p <- periodogram(x)
+  
+  # put them into a dataframe
+  dd    <-  data.frame(freq = p$freq, spec = p$spec)
+  order <-  dd[order(-dd$spec),]
+  
+  # get the top n frequencies
+  topn = head(order, n)
+
+  # calcualte the time belonging to the top frequencies
+  time = 1/topn$f
+  
+  return(list(topn, time))
+}
+
+# let's apply this function to the Ethereum data
+eth_dec <- alt_data_roll_corr %>% 
+  select(Date, rolling_corr, Coin) %>%
+  filter(Coin == "ETH") %>%
+  select(rolling_corr) 
+
+eth_dec <- top_freq(eth_dec)[[2]]
+```
+
+For ethereum the seasonality occurs at `r round(eth_dec[1], 2)`, `r round(eth_dec[2], 2)`, and `r round(eth_dec[3], 2)` days. The most significant one being `r eth_dec[1]` so we'll use this value in our decomposition.
+
+```{r}
+alt_data_roll_corr %>% 
+  select(Date, rolling_corr, Coin) %>%
+  filter(Coin == "ETH") %>%
+  select(Date, rolling_corr) %>% 
+  read.zoo(, format = "%Y-%m-%d") %>%
+  ts(, frequency = 200) %>%
+  decompose(, type = "multiplicative") %>%
+  plot()
+
+# we used the multiplicative model since there seems to be variability in the seasonality over time
+
+
+
+```
