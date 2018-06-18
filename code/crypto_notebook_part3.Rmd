@@ -179,14 +179,14 @@ sma4 <- rollmean(prod_c, k = 4)
 sma7 <- rollmean(prod_c, k = 7)
 
 # plot sales and overlay the moving averages
-plot(prod_c, pch = 16, col = "black", xlab = "Index", ylab = "Sales", cex = 1.5, ylim = c(800, 1800))
+plot(prod_c, pch = 18, col = "black", xlab = "Index", ylab = "Sales", cex = 1.5, ylim = c(800, 1800))
 points(sma2, col = "red", pch=16, cex = 1.5)
 points(sma4, col = "blue", pch=16, cex = 1.5)
 points(sma7, col = "green", pch=16, cex = 1.5)
 
 # add legend
 legend(0.8, 1820, legend=c("Sales", "2-day moving avg.", "4-day moving avg.", "7-day moving avg."),
-       col=c("black", "red", "blue", "green"),  pch = rep(16, 4), cex=0.8)
+       col=c("black", "red", "blue", "green"),  pch = c(18, rep(16, 3)), cex=0.8)
 ```
 
 Notice how increasing the time window helps us get rid of the noise in the data. This is evident from the smoother curves for the moving averages with time windows of 4 and 7. It is also worth noting that increasing the time window decreases the number number of retunred moving averages. This implies that a moving average over the whole period will result in just one number, which is simply the average over the whole period. 
@@ -223,7 +223,138 @@ kable(head(alt_data), "latex", booktabs=T) %>% column_spec(1, bold = T) %>% kabl
 We will be performing our analysis on the daily returns, so we only need a subset of this dataset:
 ```{r}
 alt_data_sub <- as.tibble(alt_data)
-alt_data_sub %>% 
-  select(Date, pair_btc, pct_change) %>% head() %>%
+alt_data_sub2 <- alt_data_sub %>% 
+  select(Date, pair_usdt, pct_change) 
+alt_data_sub2 %>% head() %>%
 kable("latex", booktabs=T) %>% column_spec(1, bold = T) %>% kable_as_image()
 ```
+
+This table contains three columns, the Date column, the pair_usdt column which is just the name of the coin pair, and the percentage daily change. We will be using this table to calculate the rolling correlations. The rolling correlations we will be calculating is with respect to Bitcoin, that is, we want to explore the rolling correlatoins of each altcoin against bitcoin. 
+
+```{r roll_corr_plot, message=FALSE, warning=FALSE, out.width = '100%'}
+# Since we are calculating the rolling correlations for altcoins against bitcoin, we need to add bitcoin as a new 
+# column to help with our calculations
+
+# we'll start by only keeping the columns we need
+alt_data_sub2 <- alt_data_sub %>% 
+  select(Date, pair_usdt, pct_change) 
+
+# let's create a new tibble with only BTC data. We'll join this table to the other table 
+btc_data <- alt_data_sub2 %>% filter(pair_usdt == "USDT_BTC") 
+
+# This table will only contain the alt coin data
+alt_data_sub3 <- alt_data_sub2 %>% filter(pair_usdt != "USDT_BTC")
+
+# clean the names of the coins
+alt_data_sub3 <- alt_data_sub3 %>% mutate(pair_usdt = gsub("^USDT_", "", pair_usdt))
+
+# now we'll calculate the static correlations
+# calculat static correlations
+alt_data_static_corr <- alt_data_sub3 %>%
+  spread(key = pair_usdt, value = pct_change) %>% 
+  left_join(btc_data, by = "Date") %>% 
+  select(-pair_usdt) %>%
+  rename(BTC = pct_change) %>%
+  select(-Date) %>%
+  correlate()
+
+# now we calculat the rolling correlations using the runCor function 
+# I got most of this code from this great post:
+# http://www.business-science.io/timeseries-analysis/2017/07/30/tidy-timeseries-analysis-pt-3.html
+
+alt_data_roll_corr <- alt_data_sub3 %>% 
+  left_join(btc_data, by = "Date") %>%
+  drop_na() %>%
+  tq_mutate_xy(
+    x          = pct_change.x,
+    y          = pct_change.y,
+    mutate_fun = runCor, 
+    # runCor args
+    n          = 30, # number of days to calculate the rolling correlation
+    use        = "pairwise.complete.obs",
+    # tq_mutate args
+    col_rename = "rolling_corr"
+  )
+
+# lets do some cleaning for the rolling correlation data frame
+alt_data_roll_corr <- alt_data_roll_corr %>% rename(Coin = pair_usdt.x
+                                                    , BTC = pair_usdt.y
+                                                    , pct_change_coin = pct_change.x
+                                                    , pct_change_BTC = pct_change.y) %>%
+  mutate(Coin = gsub("^USDT_", "", Coin), BTC = gsub("^USDT_", "", BTC))
+
+# we will now need to join the two correlation tables
+alt_data_static_corr <- alt_data_static_corr %>%
+  select(rowname, BTC) %>%
+  rename(Coin = rowname)
+
+alt_data_roll_corr <- alt_data_roll_corr %>% left_join(alt_data_static_corr, by = "Coin") %>%
+  rename(static_corr = BTC.y)
+
+# make the plot
+alt_data_roll_corr %>%
+  select(Date, Coin, static_corr, rolling_corr) %>%
+  ggplot(aes(x = Date, color = Coin)) +
+  # Data
+  geom_point(aes(y = rolling_corr), alpha = 0.5) +
+  geom_line(aes(y = static_corr), color = "red") +
+  facet_wrap(~ Coin, ncol = 3, scales = "free_y") +
+  # Aesthetics
+  scale_color_tq() +
+  labs(
+    title = "Cryptocurrency Markets: 30-Day Daily-return Rolling Correlations",
+    subtitle = "Altcoins vs Bitcoin. Static correlations shown in red",
+    x = "", y = "Correlation"
+  ) +
+  theme_tq() +
+  theme(legend.position="none")  
+```
+
+We can clearly see significant changes in the rolling correlation itself over this rolling window. what is also apparent are the similarities between the rolling correlations for the different altcoins. Let's look at a larger time window, say 90 days. The larget time window will allow us to better see any potential patterns in the data. I did exclude "BCH" from the figure since it only goes back to the Fall of 2017. I will also be fitting a GAM model with 100 knots to capture the high fluctuations we see in the data.
+
+```{r roll_corr_plot_90, message=FALSE, warning=FALSE, out.width = '100%', echo=FALSE}
+alt_data_roll_corr <- alt_data_sub3 %>% 
+  left_join(btc_data, by = "Date") %>%
+  drop_na() %>%
+  tq_mutate_xy(
+    x          = pct_change.x,
+    y          = pct_change.y,
+    mutate_fun = runCor, 
+    # runCor args
+    n          = 90, # number of days to calculate the rolling correlation
+    use        = "pairwise.complete.obs",
+    # tq_mutate args
+    col_rename = "rolling_corr"
+  )
+
+# lets do some cleaning for the rolling correlation data frame
+alt_data_roll_corr <- alt_data_roll_corr %>% rename(Coin = pair_usdt.x
+                                                    , BTC = pair_usdt.y
+                                                    , pct_change_coin = pct_change.x
+                                                    , pct_change_BTC = pct_change.y) %>%
+  mutate(Coin = gsub("^USDT_", "", Coin), BTC = gsub("^USDT_", "", BTC))
+
+alt_data_roll_corr <- alt_data_roll_corr %>% left_join(alt_data_static_corr, by = "Coin") %>%
+  rename(static_corr = BTC.y)
+
+# make the plot
+alt_data_roll_corr %>%
+  select(Date, Coin, static_corr, rolling_corr) %>%
+  filter(Coin != "BCH") %>%
+  ggplot(aes(x = Date, y = rolling_corr, color = Coin)) +
+  # Data  geom_line(aes(y = static_corr), color = "red") +
+  geom_point(alpha = 0.5, size = 0.5) +
+  geom_smooth(method="gam", formula=y~s(x,k=100), col="dodgerblue4", se=FALSE, size=0.5) +
+  facet_wrap(~ Coin, ncol = 3, scales = "free_y") +
+  # Aesthetics
+  scale_color_tq() +
+  labs(
+    title = "Cryptocurrency Markets: 90-Day Daily-return Rolling Correlations",
+    subtitle = "Altcoins vs Bitcoin. Static correlations shown in red",
+    x = "", y = "Correlation"
+  ) +
+  theme_tq() +
+  theme(legend.position="none")  
+```
+
+The above figure shows some significagnt patters in the rolling correlations of the daily return for all alt coins in consideration. 
