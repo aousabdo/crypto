@@ -169,9 +169,10 @@ One can see from the table that sales for a given product vary over time, with t
 ![Department store sales moving average](../figures/sales2.PNG){width=500px}
 
 One major factor in a rolling function is the time window over which this function is applied. Intuitively, one would expect the variability in the value returned to be lower for larger time windows. We show that in the figure below where we calcualte the moving averages for different time windows.
-```{r}
+```{r out.width = '100%', out.height=14}
 # sales for product C
 prod_c <- c(1030, 1195, 1228, 1178, 1504, 1697,1710 ,1491 ,1240 , 861, 853, 1158, 1265, 1566,1182)
+dates <- mdy(paste("1", 15:29, "2018", sep = "-"))
 
 # calculate 3 moving averages for time windows of 2, 4, and 7 days
 sma2 <- rollmean(prod_c, k = 2)
@@ -179,7 +180,8 @@ sma4 <- rollmean(prod_c, k = 4)
 sma7 <- rollmean(prod_c, k = 7)
 
 # plot sales and overlay the moving averages
-plot(prod_c, pch = 18, col = "black", xlab = "Index", ylab = "Sales", cex = 1.5, ylim = c(800, 1800))
+plot(prod_c, pch = 18, col = "black", xlab = "", ylab = "Sales", cex = 1.5, ylim = c(800, 1800), xaxt ="n")
+axis(1, at = 1:15, labels = dates, las = 2)
 points(sma2, col = "red", pch=16, cex = 1.5)
 points(sma4, col = "blue", pch=16, cex = 1.5)
 points(sma7, col = "green", pch=16, cex = 1.5)
@@ -194,7 +196,7 @@ Notice how increasing the time window helps us get rid of the noise in the data.
 The same can be done to any function that calculates a static value, like calculating correlations between two time series. 
 Let's now calculate the rolling correlations over a period of 4 days for the sales of Products A and C. 
 
-```{r}
+```{r out.width = '100%', out.height=14}
 # let's put the two sales of products A and C in a data.frame
 prod_a <- c(250, 241, 251, 286, 365, 412, 415, 362, 301, 280, 250, 234, 215, 198, 300)
 prod_c <- c(1030, 1195, 1228, 1178, 1504, 1697,1710 ,1491 ,1240 , 861, 853, 1158, 1265, 1566,1182)
@@ -205,13 +207,16 @@ df <- data.frame(prod_a, prod_c)
 rollcorr_a_c <- runCor(df[, 1], df[, 2], n = 4)
 
 # now let's make a plot
-plot(rollcorr_a_c, pch = 19, col = "blue", xlab = "Index", ylab = "Correlation", cex = 1.5, type = "b")
+plot(rollcorr_a_c, pch = 19, col = "blue", xlab = "", ylab = "Correlation", cex = 1.5, type = "b", xaxt = "n")
+axis(1, at = 1:15, labels = dates, las = 2)
 abline(h = cor(df[, 1], df[2]), col = "red", lwd = 3)
 legend(0.8, -0.5, legend=c("4-day Rolling Correlation", "Static Correlation"),
        col=c("blue", "red"),  lty=c(1, 1),pch=c(19, NA), cex=0.8)
 ```
 
-As one can see from the above figure, for time series the correlation is not static and changes over time. In the figure the rolling correlation, shown in blue, varies greatly overtime, while the static correlation (shown in red) is constant.
+As one can see from the above figure, for time series the correlation is not static and changes over time. In the figure the rolling correlation, shown in blue, varies greatly overtime, while the static correlation (shown in red) is constant. 
+
+A sudden change in rolling correlation can be of great interest as to why it [happened](http://www.business-science.io/timeseries-analysis/2017/07/30/tidy-timeseries-analysis-pt-3.html). In the example above, the sudden decreas in rolling correlation on Juanuary 26th between the sales of the two products can reveal some great insights about what happened on that day that caused this change. We will be be looking for sudden changes in rolling correlations between alt coins and bitcoin and see if there are any sudden shifts/changes in this rolling correlation, and maybe try to answer why that sudden change happened. 
 
 ### Rolling Correlation for Cryptocurrencies
 We will be using the dataset we downloaded in our previous [post](http://rpubs.com/aousabdo/crypto_2). This dataset is shown in the table below. 
@@ -231,7 +236,7 @@ kable("latex", booktabs=T) %>% column_spec(1, bold = T) %>% kable_as_image()
 
 This table contains three columns, the Date column, the pair_usdt column which is just the name of the coin pair, and the percentage daily change. We will be using this table to calculate the rolling correlations. The rolling correlations we will be calculating is with respect to Bitcoin, that is, we want to explore the rolling correlatoins of each altcoin against bitcoin. 
 
-```{r roll_corr_plot, message=FALSE, warning=FALSE, out.width = '100%'}
+```{r roll_corr_plot, message=FALSE, warning=FALSE, out.width = '100%', out.height=12}
 # Since we are calculating the rolling correlations for altcoins against bitcoin, we need to add bitcoin as a new 
 # column to help with our calculations
 
@@ -298,7 +303,7 @@ alt_data_roll_corr %>%
   # Data
   geom_point(aes(y = rolling_corr), alpha = 0.5) +
   geom_line(aes(y = static_corr), color = "red") +
-  facet_wrap(~ Coin, ncol = 3, scales = "free_y") +
+  facet_wrap(~ Coin, ncol = 2, scales = "free_y") +
   # Aesthetics
   scale_color_tq() +
   labs(
@@ -310,7 +315,7 @@ alt_data_roll_corr %>%
   theme(legend.position="none")  
 ```
 
-We can clearly see significant changes in the rolling correlation itself over this rolling window. what is also apparent are the similarities between the rolling correlations for the different altcoins. Let's look at a larger time window, say 90 days. The larget time window will allow us to better see any potential patterns in the data. I did exclude "BCH" from the figure since it only goes back to the Fall of 2017. I will also be fitting a GAM model with 100 knots to capture the high fluctuations we see in the data.
+We can clearly see significant changes in the rolling correlation itself over this rolling window. what is also apparent are the similarities between the rolling correlations for the different altcoins. Let's look at a larger time window, say 90 days. The larger time window will allow us to better see any potential patterns in the data. I did exclude "BCH" from the figure since it only goes back to the Fall of 2017. I will also be fitting a LOESS model with a span of 0.05 to capture the high fluctuations we see in the data (I basically added this line to the code snippet above ```geom_smooth(method="loess",  se=FALSE, size=0.5, span = 0.05)``` as well as adjusting n to 90).
 
 ```{r roll_corr_plot_90, message=FALSE, warning=FALSE, out.width = '100%', echo=FALSE}
 alt_data_roll_corr <- alt_data_sub3 %>% 
@@ -342,76 +347,93 @@ alt_data_roll_corr %>%
   select(Date, Coin, static_corr, rolling_corr) %>%
   filter(Coin != "BCH") %>%
   ggplot(aes(x = Date, y = rolling_corr, color = Coin)) +
-  # Data  geom_line(aes(y = static_corr), color = "red") +
   geom_point(alpha = 0.5, size = 0.5) +
-  geom_smooth(method="gam", formula=y~s(x,k=100), col="dodgerblue4", se=FALSE, size=0.5) +
+  geom_smooth(method="loess",  se=FALSE, size=0.5, span = 0.05) +
+  # geom_smooth(method="gam", formula=y~s(x,k=100), se=FALSE, size=0.5) +
   facet_wrap(~ Coin, ncol = 2, scales = "free_y") +
   # Aesthetics
   scale_color_tq() +
   labs(
     title = "Cryptocurrency Markets: 90-Day Daily-return Rolling Correlations",
-    subtitle = "Altcoins vs Bitcoin. Static correlations shown in red",
+    subtitle = "Altcoins vs Bitcoin",
     x = "", y = "Correlation"
   ) +
   theme_tq() +
   theme(legend.position="none")  
 ```
 
-The above figure shows some significagnt patters in the rolling correlations of the daily return for all alt coins in consideration. What is also interesting is the fact that these patters are very similar for all alt coins under study. 
+The above figure shows some significagnt and interesting patters in the rolling correlations of the daily return for all alt coins in consideration. What is also interesting is the fact that these patters are very similar. 
 
-Next we are going to decompose these time series into their basic components 1) Seasonality 2) Trends and 3) Random components. Decomposing a time series is a common practice that helps reveal seasonal effects and trends. A very good introduction about time series decomposition for the non-technical can be found [here](https://anomaly.io/seasonal-trend-decomposition-in-r/).
+Next we will find the dates at which the local minima and maxima for the rolling correlations occur. Since the trends are very similar for all alt coins we are analyzing, we will be doing this for only one alt coin, XRP.
 
-We will start by trying to detect the seasonality in the time series as follows
+```{r peak_detection}
+# in this secion we will build an algorithm that will detect local minima and maxima in 
+# time series data
 
-```{r eth_decompose, message=FALSE, warning=FALSE, results="hide", echo=TRUE, fig.show='hide'}
-# code snippits taken from this great blog: 
-# https://anomaly.io/detect-seasonality-using-fourier-transform-r/
-
-require(TSA)
-
-# function to get the most significant frequencies and their corresponding time
-top_freq <- function(x = NULL, n = 3){
-  require(TSA)
-  
-  # get the periodogram, this calculates the FFT
-  p <- periodogram(x)
-  
-  # put them into a dataframe
-  dd    <-  data.frame(freq = p$freq, spec = p$spec)
-  order <-  dd[order(-dd$spec),]
-  
-  # get the top n frequencies
-  topn = head(order, n)
-
-  # calcualte the time belonging to the top frequencies
-  time = 1/topn$f
-  
-  return(list(topn, time))
+# original code taken from https://rpubs.com/mengxu/peak_detection with some modifications
+argmax <- function(x, y, w=1, FUN = max, ...) {
+  require(zoo)
+  n <- length(y)
+  y.smooth <- loess(y ~ x, ...)$fitted
+  y.peak <- rollapply(data = zoo(y.smooth), width = 2*w+1, FUN = FUN, align = "center")
+  delta <- y.peak - y.smooth[-c(1:w, n+1-1:w)]
+  if(FUN == "max")
+    i.max <- which(delta <= 0) + w
+  else if(FUN == "min")
+    i.max <- which(delta >= 0) + w
+  list(x = x[i.max], i = i.max, y.hat = y.smooth)
 }
 
-# let's apply this function to the Ethereum data
-eth_dec <- alt_data_roll_corr %>% 
-  select(Date, rolling_corr, Coin) %>%
-  filter(Coin == "ETH") %>%
-  select(rolling_corr) 
+findMinMax <- function(x, y, x_axis_time = TRUE, w, span) {
+  if(x_axis_time) x2 <- seq_along(x)
+  minima <- argmax(x2, y, w=w, span=span, FUN = "min")
+  maxima <- argmax(x2, y, w=w, span=span, FUN = "max")
+  
+  plot(x, y, cex=0.75, col="Gray", xlab = "Date", ylab = "Rolling Correlation")
+  lines(x, minima$y.hat,  lwd=2) 
+  y.min <- min(y)
+  
+  sapply(minima$i, function(i) lines(c(x[i],x[i]), c(y.min, minima$y.hat[i]), col="Red", lty=2))
+  points(x[minima$i], minima$y.hat[minima$i], col="Red", pch=19, cex=1.25)
 
-eth_dec <- top_freq(eth_dec)[[2]]
+  sapply(maxima$i, function(i) lines(c(x[i],x[i]), c(y.min, maxima$y.hat[i]), col="blue", lty=2))
+  points(x[maxima$i], maxima$y.hat[maxima$i], col="blue", pch=19, cex=1.25)
+  
+  legend("top", legend=c("Local Minima", "Local Maxima"),
+         col=c("red", "blue"),  pch = c(19, 19), cex=0.8)
+
+  df <- data.frame(x_value = c(x[minima$i], x[maxima$i])
+                   , y_value = c(minima$y.hat[minima$i], maxima$y.hat[maxima$i])
+                   , minmax = as.factor(c(rep("minima", length(x[minima$i])), rep("maxima", length(x[maxima$i])))))
+  df <- df %>% arrange(x_value)
+  return(df)
+}
 ```
 
-For ethereum the seasonality occurs at `r round(eth_dec[1], 2)`, `r round(eth_dec[2], 2)`, and `r round(eth_dec[3], 2)` days. The most significant one being `r eth_dec[1]` so we'll use this value in our decomposition.
+```{r out.width = '100%'}
+XRP_data <- alt_data_roll_corr %>% 
+  select(Date, rolling_corr, Coin) %>%
+  filter(Coin == "XRP")
+
+# remove NAs
+XRP_data <- XRP_data %>% filter(!is.na(rolling_corr))
+
+XRP_corr <- XRP_data$rolling_corr
+
+corr_min_max <- findMinMax(x = XRP_data$Date, y = XRP_corr, x_axis_time = TRUE, w = 40, span = 0.05)
+```
+The figure above shows rolling correlations of XRP with the maxima and minima detected using our code above. One can see that the swings in the rolling correlation seem to get more significant with time, i.e. differences between the local minima and maxima appear to increase with time. 
+
+Our algorithm detected `r nrow(corr_min_max)` points of local minima and maxima. The dates at which the maxima and minima occur are:
 
 ```{r}
-alt_data_roll_corr %>% 
-  select(Date, rolling_corr, Coin) %>%
-  filter(Coin == "ETH") %>%
-  select(Date, rolling_corr) %>% 
-  read.zoo(, format = "%Y-%m-%d") %>%
-  ts(, frequency = 200) %>%
-  decompose(, type = "multiplicative") %>%
-  plot()
-
-# we used the multiplicative model since there seems to be variability in the seasonality over time
-
-
-
+corr_min_max$x_value
 ```
+If we just look at data after 2016 we see a major uptrend with a local maxima around Jaunury 17, 2017, this was followed by a major downtrend with a local minima in May of 2017. Then we saw another major uptrend two months later in July of 2017, followed by a sharp downtrend a month later in August. Less than a month after that we saw the global maxima in September followd by another sharp downturn in November. 
+
+I really have no clue what is causing these major swings in the rolling correlation between altcoins and bitcoin, but I have a feeling it has to do with the following: 
+
+1. News and market sentiment
+2. Price of bitcoin itself
+
+We will be investigating these dates further in our coming posts. 
