@@ -32,6 +32,7 @@ library(tidyr)
 library(MLmetrics)
 library(readr)
 library(knitr)
+library(kableExtra)
 ```
 
 ## Getting the Data
@@ -97,7 +98,7 @@ setkey(btc_usd, date)
 Let's take a look at the data table we just made. 
 
 ```{r}
-knitr::kable(head(btc_usd))
+kable(head(btc_usd), "latex", booktabs=T) %>% column_spec(1, bold = T) %>% kable_as_image()
 ```
 
 The data includes 10 columns, the date, OCHL prices, volumes in USD and BTC, the weighted price, and the exchange. 
@@ -132,7 +133,7 @@ Now we have a new column which gives us the percentage of price differences for 
 Let's take a look at the new table. 
 
 ```{r}
-knitr::kable(tail(btc_usd))
+kable(tail(btc_usd), "latex", booktabs=T) %>% column_spec(1, bold = T) %>% kable_as_image()
 ```
 
 The reason I looked at the newer dates is that prior to 2014 we only have data for one exchange, so all the price differences were 0. 
@@ -198,7 +199,7 @@ In the above chunk of code we created a new table which contains the maximum and
 Before we plot the table above, let's have a quick look at it.
 
 ```{r}
-knitr::kable(head(tmp2))
+kable(head(tmp2), "latex", booktabs=T) %>% column_spec(1, bold = T) %>% kable_as_image()
 ```
 
 The max_min_exchange column contains all the data we need, so let's make a barplot of this variable, we'll color the barplot by the max_min criteria shown in max_min column

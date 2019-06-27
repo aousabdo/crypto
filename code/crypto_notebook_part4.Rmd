@@ -1,0 +1,270 @@
+---
+title: Analyzing Cryptocurrency Markets using R - Part 4 Time Series Analysis of Bitcoin
+  and other Coins!
+author: "Aous Abdo"
+date: "June 26, 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Libraries 
+In this post we will be using the same libraries from my previous [post](http://rpubs.com/aousabdo/crypto_2). We will also reuse some of the functions introduced in that post. 
+
+```{r message=FALSE, echo=FALSE}
+library(PoloniexR)
+library(data.table)
+library(lubridate)
+library(Quandl)
+library(plyr)
+library(stringr)
+library(ggplot2)
+library(plotly)
+library(janitor)
+library(quantmod)
+library(pryr)
+library(corrplot)
+library(PerformanceAnalytics)
+library(tidyr)
+library(MLmetrics)
+library(tidyquant)
+library(corrr)
+library(cowplot)
+library(knitr)
+library(zoo)
+library(TTR)
+library(kableExtra)
+```
+
+
+```{r poloniex_function, echo=FALSE}
+get_alt_data <- function(tz = "UTC"
+                         , coin = c("ETH", "LTC")
+                         , add_bitcoin = TRUE
+                         , return_in_USDT = TRUE
+                         , from = "2017-01-01"
+                         , to = "2018-04-09"
+                         , period = "D"
+                         , verbose = FALSE){
+  
+  # We will be using the public API
+  poloniex.public <- PoloniexPublicAPI()
+  
+  # set the time zone to utc
+  Sys.setenv(tz = tz)
+  
+  # convert from and to into time obj
+  from  <- as.POSIXct(paste(from, tz, sep = ""))
+  to    <- as.POSIXct(paste(to, tz, sep = ""))
+  
+  # lists to store data.tables and xts objects
+  chart_list <- list()
+  dt_list    <- list()
+  
+  # make sure the coin pair is in upper case
+  coin       <- toupper(coin)
+  coin_pairs <- paste0("BTC_", coin[coin != "BTC"])
+  if(add_bitcoin | return_in_USDT) coin_pairs <- c("USDT_BTC", coin_pairs)
+  
+  # loop over the coins to get the data
+  for(i in coin_pairs){
+    if(verbose)
+      invisible(cat('\tGetting data for ', i, ' pair\n'))
+    
+    # this is a list that will contain the chart data for each coin pair
+    try(chart_list[[i]] <- ReturnChartData(theObject = poloniex.public
+                                       , pair      = i
+                                       , from      = from
+                                       , to        = to
+                                       , period    = period)
+        , silent = TRUE)
+    
+    # list to contain data.tables 
+    try(dt_list[[i]] <- as.data.table(chart_list[[i]]), silent = TRUE)
+  }
+  
+  # convert to data.table and make sure to add a column containing the pairs
+  coin_dt <- rbindlist(l = dt_list, use.names = TRUE, idcol = "pair")
+  
+  # return data in usdt prices
+  if(return_in_USDT){
+    # to get the price of the alt coin in usdt is not that simple but we'll do it
+    # get a DT of the btc_usdt pair
+    btc_usd <- coin_dt[pair == "USDT_BTC"]
+    btc_usd <- btc_usd[, .(index, pair, weightedaverage)]
+    setnames(btc_usd, c("Date", "USDT_BTC_pair", "USDT_BTC_price"))
+    
+    # get DT with only alt coins
+    alt_coins <- copy(coin_dt)#[pair != "USDT_BTC"]
+    
+    # now we need to add an index to the alt_coins table, but first we have to rename the index column
+    alt_coins[, Date := index]
+    alt_coins[, index := 1:.N]
+    setkey(alt_coins, index)
+    
+    # now merge the data tables
+    coin_dt_usdt <- merge(x = alt_coins, y = btc_usd, by = "Date")
+    
+    # now calcualte the price in usdt
+    coin_dt_usdt[, price_usdt := ifelse(pair == "USDT_BTC", USDT_BTC_price, weightedaverage * USDT_BTC_price)]
+    
+    # now get rid of the extra columns
+    coin_dt_usdt[, c("USDT_BTC_price", "USDT_BTC_pair") := NULL]
+    
+    # we need to change some column names
+    col_names_to_change <- c("pair", "high", "low", "open", "close", "volume", "quotevolume", "weightedaverage")
+    col_names <- names(coin_dt_usdt)
+    col_names[col_names %in% col_names_to_change] <- paste0(col_names_to_change, '_btc')
+    
+    setnames(coin_dt_usdt, col_names)
+    
+    # add a column for the usdt pair
+    coin_dt_usdt[, pair_usdt := gsub("BTC_", "USDT_", pair_btc)]
+    
+    # adjust col order
+    setcolorder(coin_dt_usdt, c(1:10, 12, 11))
+    
+    # set key again
+    setkey(coin_dt_usdt, index)
+    
+    # now get rid of the index column since it is not needed anymore
+    coin_dt_usdt[, index := NULL]
+    
+    # now put together the return list  
+    return_list <- list(alt_chart_list = chart_list, alt_dt = coin_dt, alt_usdt_dt = coin_dt_usdt)
+  }else{
+    return_list <- list(alt_chart_list = chart_list, alt_dt = coin_dt)
+  }
+  
+  return(return_list)
+}
+```
+
+
+```{r, echo=FALSE}
+# get alt data for some coins
+alt_data <- get_alt_data(return_in_USDT = T
+                         , from = "2015-01-01"
+                         , coin = c('ETH','XRP', 'BCH', 'LTC', 'NEO', 'XMR', 'DASH', 'XEM'))[['alt_usdt_dt']]
+# add daily price change
+alt_data[, pct_change := Delt(price_usdt), by = pair_usdt]
+
+alt_data_sub <- as.tibble(alt_data)
+alt_data_sub2 <- alt_data_sub %>% 
+  select(Date, pair_usdt, pct_change) 
+```
+
+
+```{r roll_corr_plot_90, message=FALSE, warning=FALSE, out.width = '100%', echo=FALSE}
+# Since we are calculating the rolling correlations for altcoins against bitcoin, we need to add bitcoin as a new 
+# column to help with our calculations
+
+# we'll start by only keeping the columns we need
+alt_data_sub2 <- alt_data_sub %>% 
+  select(Date, pair_usdt, pct_change) 
+
+# let's create a new tibble with only BTC data. We'll join this table to the other table 
+btc_data <- alt_data_sub2 %>% filter(pair_usdt == "USDT_BTC") 
+
+# This table will only contain the alt coin data
+alt_data_sub3 <- alt_data_sub2 %>% filter(pair_usdt != "USDT_BTC")
+
+# clean the names of the coins
+alt_data_sub3 <- alt_data_sub3 %>% mutate(pair_usdt = gsub("^USDT_", "", pair_usdt))
+
+
+alt_data_roll_corr <- alt_data_sub3 %>% 
+  left_join(btc_data, by = "Date") %>%
+  drop_na() %>%
+  tq_mutate_xy(
+    x          = pct_change.x,
+    y          = pct_change.y,
+    mutate_fun = runCor, 
+    # runCor args
+    n          = 90, # number of days to calculate the rolling correlation
+    use        = "pairwise.complete.obs",
+    # tq_mutate args
+    col_rename = "rolling_corr"
+  )
+
+# lets do some cleaning for the rolling correlation data frame
+alt_data_roll_corr <- alt_data_roll_corr %>% rename(Coin = pair_usdt.x
+                                                    , BTC = pair_usdt.y
+                                                    , pct_change_coin = pct_change.x
+                                                    , pct_change_BTC = pct_change.y) %>%
+  mutate(Coin = gsub("^USDT_", "", Coin), BTC = gsub("^USDT_", "", BTC))
+
+alt_data_roll_corr <- alt_data_roll_corr %>% left_join(alt_data_static_corr, by = "Coin") %>%
+  rename(static_corr = BTC.y)
+
+# make the plot
+alt_data_roll_corr %>%
+  select(Date, Coin, static_corr, rolling_corr) %>%
+  filter(Coin != "BCH") %>%
+  ggplot(aes(x = Date, y = rolling_corr, color = Coin)) +
+  # Data  geom_line(aes(y = static_corr), color = "red") +
+  geom_point(alpha = 0.5, size = 0.5) +
+  geom_smooth(method="gam", formula=y~s(x,k=100), col="dodgerblue4", se=FALSE, size=0.5) +
+  facet_wrap(~ Coin, ncol = 2, scales = "free_y") +
+  # Aesthetics
+  scale_color_tq() +
+  labs(
+    title = "Cryptocurrency Markets: 90-Day Daily-return Rolling Correlations",
+    subtitle = "Altcoins vs Bitcoin. Static correlations shown in red",
+    x = "", y = "Correlation"
+  ) +
+  theme_tq() +
+  theme(legend.position="none")  
+```
+
+```{r eth_decompose, message=FALSE, warning=FALSE, results="hide", echo=TRUE, fig.show='hide'}
+# code snippits taken from this great blog: 
+# https://anomaly.io/detect-seasonality-using-fourier-transform-r/
+
+require(TSA)
+
+# function to get the most significant frequencies and their corresponding time
+top_freq <- function(x = NULL, n = 3){
+  require(TSA)
+  
+  # get the periodogram, this calculates the FFT
+  p <- periodogram(x)
+  
+  # put them into a dataframe
+  dd    <-  data.frame(freq = p$freq, spec = p$spec)
+  order <-  dd[order(-dd$spec),]
+  
+  # get the top n frequencies
+  topn = head(order, n)
+
+  # calcualte the time belonging to the top frequencies
+  time = 1/topn$f
+  
+  return(list(topn, time))
+}
+
+# let's apply this function to the Ethereum data
+eth_dec <- alt_data_roll_corr %>% 
+  select(Date, rolling_corr, Coin) %>%
+  filter(Coin == "ETH") %>%
+  select(rolling_corr) 
+
+eth_dec <- top_freq(eth_dec)[[2]]
+```
+
+For ethereum the seasonality occurs at `r round(eth_dec[1], 2)`, `r round(eth_dec[2], 2)`, and `r round(eth_dec[3], 2)` days. The most significant one being `r eth_dec[1]` so we'll use this value in our decomposition.
+
+```{r}
+alt_data_roll_corr %>% 
+  select(Date, rolling_corr, Coin) %>%
+  filter(Coin == "ETH") %>%
+  select(Date, rolling_corr) %>% 
+  read.zoo(, format = "%Y-%m-%d") %>%
+  ts(, frequency = 200) %>%
+  decompose(, type = "multiplicative") %>%
+  plot()
+
+# we used the multiplicative model since there seems to be variability in the seasonality over time
+```
