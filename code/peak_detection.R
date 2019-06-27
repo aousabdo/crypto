@@ -56,10 +56,7 @@ test <- function(x, y, w, span, FUN = max) {
 
 foo <- alt_data_roll_corr %>% 
   select(Date, rolling_corr, Coin) %>%
-  filter(Coin == "ETH") %>%
-  select(Date, rolling_corr, Coin) %>%
-  filter(Coin != "BCH") %>%
-  filter(Date >= ymd("2015-08-09"))
+  filter(Coin == "DASH") 
 
 argmax_1 <- argmax(x = seq_along(foo$rolling_corr), y = foo$rolling_corr, 2, 0.05, FUN = "max")
 
@@ -69,9 +66,10 @@ test(x = seq_along(foo$rolling_corr), y = foo$rolling_corr, 2, 0.05, FUN = "min"
 
 
 
-findMinMax <- function(x, y, w, span) {
-  minima <- argmax(x, y, w=w, span=span, FUN = "min")
-  maxima <- argmax(x, y, w=w, span=span, FUN = "max")
+findMinMax <- function(x, y, x_axis_time = TRUE, w, span) {
+  if(x_axis_time) x2 <- seq_along(x)
+  minima <- argmax(x2, y, w=w, span=span, FUN = "min")
+  maxima <- argmax(x2, y, w=w, span=span, FUN = "max")
   
   plot(x, y, cex=0.75, col="Gray", main=paste("w = ", w, ", span = ", span, sep=""))
   lines(x, minima$y.hat,  lwd=2) 
@@ -79,13 +77,29 @@ findMinMax <- function(x, y, w, span) {
   
   sapply(minima$i, function(i) lines(c(x[i],x[i]), c(y.min, minima$y.hat[i]), col="Red", lty=2))
   points(x[minima$i], minima$y.hat[minima$i], col="Red", pch=19, cex=1.25)
-  print(x[minima$i])
-  
+
   sapply(maxima$i, function(i) lines(c(x[i],x[i]), c(y.min, maxima$y.hat[i]), col="blue", lty=2))
   points(x[maxima$i], maxima$y.hat[maxima$i], col="blue", pch=19, cex=1.25)
-  print(x[maxima$i])
   
+  legend("top", legend=c("Local Minima", "Local Maxima"),
+         col=c("red", "blue"),  pch = c(19, 19), cex=0.8)
+
+  df <- data.frame(x_value = c(x[minima$i], x[maxima$i])
+                   , y_value = c(minima$y.hat[minima$i], maxima$y.hat[maxima$i])
+                   , minmax = as.factor(c(rep("minima", length(x[minima$i])), rep("maxima", length(x[maxima$i])))))
+  df <- df %>% arrange(x_value)
+  return(df)
 }
 
-findMinMax(x = seq_along(foo$rolling_corr), y = foo$rolling_corr, 20, 0.05)
- 
+foo2 <- findMinMax(x = seq_along(foo$rolling_corr), y = foo$rolling_corr, 1, 0.05)
+
+# foo2 <- findMinMax(x = seq_along(foo$rolling_corr[1:(30*3)]), y = foo$rolling_corr[1:(30*3)], 2, 0.05)
+
+
+ggplot() +
+  theme_bw() +
+  geom_point(data = foo, aes(x = Date, y = rolling_corr), alpha = 0.5, size = 0.5) +
+  geom_smooth(data = foo, aes(x = Date, y = rolling_corr), method="loess",  se=FALSE, size=0.5, span = 0.05) +
+  geom_point(data = foo2, aes(x = foo[["Date"]][foo2$x_value], y = foo[["rolling_corr"]][foo2$x_value], col = minmax), lwd = 4) +
+  scale_color_tq() + 
+  theme(legend.position="none")
